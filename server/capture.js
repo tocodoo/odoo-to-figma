@@ -20,6 +20,7 @@ function findChrome() {
   const candidates = [
     process.env.CHROME_PATH,
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    require('os').homedir() + '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     '/Applications/Chromium.app/Contents/MacOS/Chromium',
     '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
     '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
