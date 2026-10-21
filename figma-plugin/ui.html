@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  /* Monochrome palette — light by default, swapped when Figma runs in dark mode. */
+  :root {
+    --ink: #1a1a1a;
+    --ink-hover: #424242;
+    --on-ink: #ffffff;
+    --bg: #ffffff;
+    --surface: #fafafa;
+    --fill: #f2f2f2;
+    --line: #ededed;
+    --line-strong: #e6e6e6;
+    --text: #1a1a1a;
+    --muted: #707070;
+    --faint: #999999;
+    --ok: #2fc941;
+    --danger: #ff5f54;
+    --shadow: 0 .6px 1.6px -1.5px rgba(0,0,0,.17), 0 2.3px 6px -3px rgba(0,0,0,.14), 0 10px 26px -4.5px rgba(0,0,0,.02);
+    --sans: "Google Sans", "Google Sans Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "Fragment Mono", "SF Mono", Menlo, monospace;
+  }
+  html.figma-dark {
+    --ink: #ffffff;
+    --ink-hover: #e6e6e6;
+    --on-ink: #1a1a1a;
+    --bg: #1a1a1a;
+    --surface: #202020;
+    --fill: #2a2a2a;
+    --line: rgba(255,255,255,.08);
+    --line-strong: rgba(255,255,255,.12);
+    --text: #ffffff;
+    --muted: rgba(255,255,255,.6);
+    --faint: rgba(255,255,255,.4);
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px -6px rgba(0,0,0,.5);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body { font: 12px/1.45 var(--sans); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
+  .app { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+  header { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 32px; height: 32px; border-radius: 10px; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; flex: none; }
+  .brand { min-width: 0; white-space: nowrap; font-weight: 600; font-size: 14px; letter-spacing: -0.02em; }
+  .brand small { display: block; overflow: hidden; text-overflow: ellipsis; font-weight: 400; font-size: 11px; color: var(--muted); letter-spacing: -0.01em; }
+  .status { margin-left: auto; flex: none; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); cursor: pointer; white-space: nowrap; background: var(--fill); border-radius: 100px; padding: 5px 10px 5px 8px; transition: color .15s; }
+  .status:hover { color: var(--text); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+  .dot.on { background: var(--ok); box-shadow: 0 0 0 3px rgba(47,201,65,.18); }
+  .dot.off { background: var(--danger); }
+  .chip { display: none; flex: none; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 500; color: var(--on-ink); background: var(--ink); border-radius: 100px; padding: 4px 9px; white-space: nowrap; }
+  .chip.on { display: inline-flex; }
+  label.lbl { display: flex; align-items: baseline; gap: 8px; font-weight: 500; font-size: 12px; letter-spacing: -0.01em; margin-bottom: 8px; }
+  label.lbl i, .theme i { font: normal 10.5px var(--mono); color: var(--faint); letter-spacing: 0; }
+  .url { display: flex; align-items: center; border-radius: 100px; background: var(--fill); padding: 0 16px; height: 44px; box-shadow: inset 0 0 0 1px transparent; transition: background .15s, box-shadow .15s; }
+  .url:focus-within { background: var(--bg); box-shadow: inset 0 0 0 1px var(--ink); }
+  .url svg { flex: none; color: var(--muted); }
+  .url input { flex: 1; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; font-size: 13px; letter-spacing: -0.01em; padding: 0 10px; min-width: 0; }
+  .url input::placeholder { color: var(--faint); }
+  .vps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .vp { border-radius: 12px; padding: 14px 6px 12px; text-align: center; cursor: pointer; background: var(--surface); color: var(--muted); font: inherit; user-select: none; box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow .15s, background .15s, color .15s; }
+  .vp:hover { box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--text); }
+  .vp:focus-visible { outline: 0; box-shadow: inset 0 0 0 1px var(--ink); }
+  .vp.sel { background: var(--bg); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--ink), var(--shadow); }
+  .vp svg { display: block; margin: 0 auto 8px; }
+  .vp b { display: block; font-size: 12px; font-weight: 500; color: var(--text); letter-spacing: -0.01em; }
+  .vp span { font: 10.5px var(--mono); color: var(--faint); letter-spacing: 0; }
+  .theme { display: flex; gap: 8px; align-items: center; font-size: 12px; font-weight: 500; }
+  .theme .seg { margin-left: auto; }
+  .seg { display: inline-flex; background: var(--fill); border-radius: 100px; padding: 3px; gap: 2px; }
+  .seg button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 11.5px; font-weight: 500; padding: 5px 14px; border-radius: 100px; cursor: pointer; transition: background .15s, color .15s; }
+  .seg button:hover { color: var(--text); }
+  .seg button.sel { background: var(--bg); color: var(--text); box-shadow: var(--shadow); }
+  .opts { display: flex; flex-direction: column; gap: 8px; }
+  .check { display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; padding: 12px 14px; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .check > div { flex: 1; }
+  .check input { appearance: none; -webkit-appearance: none; order: 2; margin: 0; width: 30px; height: 18px; flex: none; border-radius: 100px; background: var(--line-strong); position: relative; cursor: pointer; transition: background .2s; }
+  .check input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .2s; }
+  .check input:checked { background: var(--ink); }
+  .check input:checked::after { transform: translateX(12px); background: var(--on-ink); }
+  .check b { display: block; font-size: 12px; font-weight: 500; }
+  .check span { display: block; font-size: 11px; color: var(--muted); }
+  .go { height: 44px; border: 0; border-radius: 100px; background: var(--ink); color: var(--on-ink); font: inherit; font-weight: 500; font-size: 13px; letter-spacing: -0.01em; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .15s, transform .1s; }
+  .go:hover { background: var(--ink-hover); }
+  .go:active { transform: scale(.99); }
+  .go:disabled { opacity: .45; cursor: default; transform: none; }
+  .go .arrow { transition: transform .15s; }
+  .go:hover:not(:disabled) .arrow { transform: translateX(2px); }
+  .busy .go .arrow { display: none; }
+  .panel { border-radius: 12px; padding: 14px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); display: none; }
+  .panel.show { display: block; }
+  .step { font-size: 12px; display: flex; justify-content: space-between; gap: 8px; }
+  .step .pct { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+  .bar { height: 3px; border-radius: 100px; background: var(--line-strong); margin-top: 10px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; border-radius: 100px; background: var(--ink); transition: width .25s; }
+  .result { font-size: 12px; }
+  .result b { font-weight: 500; }
+  .result.ok b { color: var(--text); }
+  .result.ok b::first-letter { color: var(--ok); }
+  .result.err b { color: var(--danger); }
+  .result ul { margin: 6px 0 0; padding-left: 16px; color: var(--muted); }
+  .hint { color: var(--muted); font-size: 11px; }
+  code { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0; background: var(--fill); border-radius: 6px; padding: 1px 5px; }
+  details { border-top: 1px solid var(--line); padding-top: 14px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 11px; list-style: none; display: flex; align-items: center; gap: 6px; }
+  summary:hover { color: var(--text); }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; margin-left: auto; font: 13px var(--mono); }
+  details[open] summary::after { content: "–"; }
+  .row { display: flex; gap: 6px; margin-top: 10px; }
+  .row input { flex: 1; min-width: 0; height: 32px; border: 0; border-radius: 100px; padding: 0 12px; background: var(--fill); color: var(--text); font: 11px var(--mono); outline: 0; box-shadow: inset 0 0 0 1px transparent; }
+  .row input:focus { background: var(--bg); box-shadow: inset 0 0 0 1px var(--ink); }
+  .row button { height: 32px; border: 0; border-radius: 100px; background: var(--bg); color: var(--text); font: inherit; font-size: 11px; font-weight: 500; padding: 0 12px; cursor: pointer; box-shadow: inset 0 0 0 1px var(--line-strong); }
+  .row button:hover { box-shadow: inset 0 0 0 1px var(--ink); }
+  .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; opacity: .7; animation: spin .7s linear infinite; display: none; }
+  .busy .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Lock screen: shown until the render server answers */
+  .app.locked { display: none; }
+  .gate { display: none; padding: 20px; flex-direction: column; gap: 16px; }
+  .gate.show { display: flex; }
+  .gate-card { border-radius: 24px; padding: 28px 20px 20px; text-align: center; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .gate-icon { width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 14px; display: grid; place-items: center; background: var(--bg); color: var(--text); box-shadow: var(--shadow), inset 0 0 0 1px var(--line); }
+  .gate-card h2 { margin: 0 0 6px; font-size: 16px; font-weight: 500; letter-spacing: -0.02em; }
+  .gate-card p { margin: 0 0 20px; color: var(--muted); font-size: 12px; }
+  .gate-card .go { width: 100%; }
+  .gate-err { color: var(--danger) !important; font-size: 11px !important; margin: 12px 0 0 !important; word-break: break-word; }
+  .gate-err:empty { display: none; }
+  .setup { border-radius: 12px; padding: 14px; font-size: 12px; box-shadow: inset 0 0 0 1px var(--line-strong); }
+  .setup b { font-weight: 500; }
+  .setup[hidden] { display: none; }
+  .setup ol { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
+  .setup li { margin: 6px 0; }
+  .cmd { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+  .cmd code { flex: 1; padding: 8px 10px; font-size: 11px; color: var(--text); border-radius: 8px; }
+  .cmd button, .link { border: 0; border-radius: 100px; background: var(--bg); color: var(--text); font: inherit; font-size: 11px; font-weight: 500; padding: 6px 12px; cursor: pointer; box-shadow: inset 0 0 0 1px var(--line-strong); }
+  .cmd button:hover, .link:hover { box-shadow: inset 0 0 0 1px var(--ink); }
+  .link { display: block; width: 100%; margin-top: 12px; height: 34px; }
+</style>
+</head>
+<body>
+<div class="gate show" id="gate">
+  <header>
+    <div class="logo" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="3.2"/></svg>
+    </div>
+    <div class="brand">Odoo To Figma<small>One URL → one Figma design</small></div>
+  </header>
+  <div class="gate-card">
+    <div class="gate-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 7.2a8 8 0 1 0 11.4 0"/></svg>
+    </div>
+    <h2 id="gateTitle">Connecting to server…</h2>
+    <p id="gateText">Checking the render server.</p>
+    <button class="go" id="startBtn" disabled><span class="spinner" id="startSpin"></span><span id="startText">Start server</span></button>
+    <p class="gate-err" id="gateErr"></p>
+  </div>
+  <div class="setup" id="setup" hidden>
+    <b>First time?</b> Install the launcher once:
+    <ol>
+      <li>Open a terminal in the <code>odootofigma</code> folder.</li>
+      <li>Run:
+        <div class="cmd"><code id="cmdText">npm run install-launcher</code><button id="copyCmd">Copy</button></div>
+      </li>
+      <li>Come back here: the button starts the server, no terminal needed.</li>
+    </ol>
+    <button class="link" id="retry">I've installed the launcher — retry</button>
+  </div>
+  <details>
+    <summary>Server address</summary>
+    <div class="row">
+      <input id="gateServer" type="text" value="http://localhost:3999" spellcheck="false">
+      <button id="gateSave">Test</button>
+    </div>
+  </details>
+</div>
+
+<div class="app locked">
+  <header>
+    <div class="logo" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="3.2"/></svg>
+    </div>
+    <div class="brand">Odoo To Figma<small>One URL → one Figma design</small></div>
+    <div class="status" id="status" title="Check server"><span class="dot" id="dot"></span><span id="statusText">…</span></div>
+    <span class="chip" id="mcpChip" title="Exports requested from Claude (MCP) land here automatically while the plugin is open.">✦ Claude</span>
+  </header>
+
+  <div>
+    <label class="lbl" for="url"><i>01</i>Page URL</label>
+    <div class="url">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z"/></svg>
+      <input id="url" type="text" placeholder="https://www.odoo.com" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+
+  <div>
+    <label class="lbl"><i>02</i>Screens</label>
+    <div class="vps" id="vps">
+      <div class="vp sel" data-vp="desktop" role="button" tabindex="0">
+        <svg width="22" height="18" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="13" rx="2"/><path d="M8 18h8M12 15v3"/></svg>
+        <b>Desktop</b><span>1440 px</span>
+      </div>
+      <div class="vp" data-vp="tablet" role="button" tabindex="0">
+        <svg width="22" height="18" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="1" width="14" height="18" rx="2"/><path d="M11 16h2"/></svg>
+        <b>Tablet</b><span>768 px</span>
+      </div>
+      <div class="vp" data-vp="mobile" role="button" tabindex="0">
+        <svg width="22" height="18" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="7.5" y="1" width="9" height="18" rx="2"/><path d="M11 16h2"/></svg>
+        <b>Mobile</b><span>390 px</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="theme"><i>03</i>Theme
+    <div class="seg" id="theme">
+      <button data-theme="light" class="sel">Light</button>
+      <button data-theme="dark">Dark</button>
+    </div>
+  </div>
+
+  <div class="opts">
+    <label class="check">
+      <input type="checkbox" id="autoLayout">
+      <div><b>Auto layout</b><span>Converts layouts to Figma auto layout (without moving anything).</span></div>
+    </label>
+  </div>
+
+  <button class="go" id="go"><span class="spinner"></span><span id="goText">Import to Figma</span><svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+
+  <div class="panel" id="progress">
+    <div class="step"><span id="stepText">…</span><span class="pct" id="pct">0%</span></div>
+    <div class="bar"><i id="barFill"></i></div>
+  </div>
+
+  <div class="panel" id="result"></div>
+
+  <details id="settings">
+    <summary>Server settings</summary>
+    <div class="row">
+      <input id="server" type="text" value="http://localhost:3999" spellcheck="false">
+      <button id="saveServer">Test</button>
+      <button id="stopServer" title="Stop the render server">Stop</button>
+    </div>
+    <p class="hint">The server loads the page in Chrome and sends back its layout. Start it from the plugin's home screen (or with <code>npm start</code> in the <code>odootofigma</code> folder).</p>
+  </details>
+</div>
+
+<script>
+  var VIEWPORTS = {
+    desktop: { key: 'desktop', label: 'Desktop', width: 1440 },
+    tablet: { key: 'tablet', label: 'Tablet', width: 768 },
+    mobile: { key: 'mobile', label: 'Mobile', width: 390 }
+  };
+  var $ = function (id) { return document.getElementById(id); };
+  var settings = { server: 'http://localhost:3999', url: '', viewports: ['desktop'], theme: 'light', autoLayout: false };
+  var busy = false;
+  var pending = null;
+
+  function post(msg) { parent.postMessage({ pluginMessage: msg }, '*'); }
+  function saveSettings() { post({ type: 'save-settings', settings: settings }); }
+  function serverUrl() { return (settings.server || 'http://localhost:3999').replace(/\/+$/, ''); }
+
+  // ----- UI state -----------------------------------------------------------
+  function renderSelection() {
+    $('autoLayout').checked = !!settings.autoLayout;
+    Array.prototype.forEach.call(document.querySelectorAll('.vp'), function (el) {
+      el.classList.toggle('sel', settings.viewports.indexOf(el.getAttribute('data-vp')) >= 0);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#theme button'), function (el) {
+      el.classList.toggle('sel', el.getAttribute('data-theme') === settings.theme);
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.vp'), function (el) {
+    function toggle() {
+      if (busy) return;
+      var k = el.getAttribute('data-vp');
+      var i = settings.viewports.indexOf(k);
+      if (i >= 0) { if (settings.viewports.length > 1) settings.viewports.splice(i, 1); }
+      else settings.viewports.push(k);
+      settings.viewports.sort(function (a, b) { return Object.keys(VIEWPORTS).indexOf(a) - Object.keys(VIEWPORTS).indexOf(b); });
+      renderSelection(); saveSettings(); updateButton();
+    }
+    el.addEventListener('click', toggle);
+    el.addEventListener('keydown', function (e) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#theme button'), function (el) {
+    el.addEventListener('click', function () { if (busy) return; settings.theme = el.getAttribute('data-theme'); renderSelection(); saveSettings(); });
+  });
+
+  $('autoLayout').addEventListener('change', function () {
+    if (busy) { $('autoLayout').checked = !!settings.autoLayout; return; }
+    settings.autoLayout = $('autoLayout').checked;
+    saveSettings();
+  });
+
+  function updateButton() {
+    var n = settings.viewports.length;
+    $('goText').textContent = busy ? 'Importing…' : (n > 1 ? 'Import ' + n + ' screens' : 'Import to Figma');
+    $('go').disabled = busy;
+    document.body.classList.toggle('busy', busy);
+  }
+
+  function setProgress(text, pct) {
+    $('progress').classList.add('show');
+    $('stepText').textContent = text;
+    var p = Math.max(0, Math.min(100, Math.round(pct)));
+    $('pct').textContent = p + '%';
+    $('barFill').style.width = p + '%';
+    fit();
+  }
+
+  function showResult(html, ok) {
+    var r = $('result');
+    r.className = 'panel show result ' + (ok ? 'ok' : 'err');
+    r.innerHTML = html;
+    fit();
+  }
+
+  function fit() {
+    var el = locked ? $('gate') : document.querySelector('.app');
+    post({ type: 'resize', height: el.offsetHeight + 4 });
+  }
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // ----- server -------------------------------------------------------------
+  function checkServer() {
+    return fetch(serverUrl() + '/health', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        $('dot').className = 'dot on';
+        $('statusText').textContent = j.chrome === false ? 'Chrome missing' : 'Connected';
+        return true;
+      })
+      .catch(function () {
+        $('dot').className = 'dot off';
+        $('statusText').textContent = 'Offline';
+        return false;
+      });
+  }
+  $('status').addEventListener('click', refreshGate);
+  function setServer(v) {
+    settings.server = (v || '').trim() || 'http://localhost:3999';
+    $('server').value = settings.server;
+    $('gateServer').value = settings.server;
+    saveSettings();
+    refreshGate();
+  }
+  $('saveServer').addEventListener('click', function () { setServer($('server').value); });
+  $('gateSave').addEventListener('click', function () { setServer($('gateServer').value); });
+
+  // ----- lock screen & launcher --------------------------------------------
+  // A Figma plugin cannot run commands: the "Start" button asks the local
+  // launcher (installed once with `npm run install-launcher`) to start the server.
+  var locked = true, starting = false;
+  // Checked once per plugin opening: the plugin stays locked until it is done.
+  var updateChecked = false, updateRequired = false;
+
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  function launcherUrl() {
+    return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(serverUrl()) ? 'http://localhost:3998' : null;
+  }
+
+  function launcherHealth() {
+    var lu = launcherUrl();
+    if (!lu) return Promise.resolve(null);
+    return fetch(lu + '/health', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; });
+  }
+
+  /** Asks the launcher whether the git clone is behind GitHub. */
+  function checkUpdate() {
+    var lu = launcherUrl();
+    var check = lu ? fetch(lu + '/update', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { updateRequired = j.behind > 0; })
+      .catch(function () {}) : Promise.resolve();
+    return check.then(function () { updateChecked = true; });
+  }
+
+  async function runUpdate() {
+    starting = true;
+    setGate('updating');
+    try {
+      var r = await fetch(launcherUrl() + '/update', { method: 'POST' });
+      var j = await r.json().catch(function () { return {}; });
+      if (!r.ok || !j.ok) throw new Error(j.error || ('The launcher responded ' + r.status));
+      post({ type: 'close', text: 'Odoo To Figma updated ✓ Reopen the plugin.' });
+    } catch (e) {
+      starting = false;
+      setGate('update', e && e.message ? e.message : String(e));
+    }
+  }
+
+  function setLocked(v) {
+    locked = v;
+    if (v) disconnectEvents(); else { connectEvents(); processJobs(); }
+    $('gate').classList.toggle('show', v);
+    document.querySelector('.app').classList.toggle('locked', v);
+    fit();
+  }
+
+  function setGate(state, err) {
+    var title = 'Server stopped', text = 'The render server must be running to import pages.';
+    var label = 'Start server', disabled = false, spin = false, setup = false;
+    if (state === 'checking') { title = 'Connecting to server…'; text = 'Checking the render server.'; disabled = true; spin = true; }
+    else if (state === 'starting') { title = 'Starting server…'; text = 'Chrome is launching, this takes a few seconds.'; label = 'Starting…'; disabled = true; spin = true; }
+    else if (state === 'nolauncher') { text = 'The launcher is not installed on this Mac yet.'; label = 'Retry'; setup = true; }
+    else if (state === 'update') { title = 'Update required'; text = 'A new version of Odoo To Figma is available. Update to keep using the plugin.'; label = 'Update now'; }
+    else if (state === 'updating') { title = 'Updating…'; text = 'Downloading the latest version, this can take a minute.'; label = 'Updating…'; disabled = true; spin = true; }
+    else if (state === 'remote') { title = 'Server unreachable'; text = serverUrl() + ' is not responding.'; label = 'Retry'; }
+    $('gateTitle').textContent = title;
+    $('gateText').textContent = text;
+    $('startText').textContent = label;
+    $('startBtn').disabled = disabled;
+    $('startSpin').style.display = spin ? 'inline-block' : 'none';
+    $('startBtn').setAttribute('data-state', state);
+    $('setup').hidden = !setup;
+    $('gateErr').textContent = err || '';
+    fit();
+  }
+
+  async function refreshGate() {
+    if (starting || !updateChecked) return false;
+    if (updateRequired) { setLocked(true); setGate('update'); return false; }
+    if (await checkServer()) { setLocked(false); return true; }
+    if (busy) return false;
+    setLocked(true);
+    if (!launcherUrl()) { setGate('remote'); return false; }
+    var l = await launcherHealth();
+    setGate(l ? 'stopped' : 'nolauncher', l && l.error);
+    return false;
+  }
+
+  async function startServer() {
+    var state = $('startBtn').getAttribute('data-state');
+    if (state === 'update') return runUpdate();
+    if (state !== 'stopped') { setGate('checking'); await sleep(300); return refreshGate(); }
+    starting = true;
+    setGate('starting');
+    var error = '';
+    try {
+      var r = await fetch(launcherUrl() + '/start', { method: 'POST' });
+      var j = await r.json().catch(function () { return {}; });
+      if (!r.ok || !j.ok) throw new Error(j.error || ('The launcher responded ' + r.status));
+      for (var i = 0; i < 60 && !(await checkServer()); i++) await sleep(500);
+    } catch (e) {
+      error = e && e.message ? e.message : String(e);
+    }
+    starting = false;
+    if (!(await refreshGate()) && !error) error = 'The server is not responding. Log: ~/Library/Logs/Odoo To Figma/launcher.log';
+    if (error) $('gateErr').textContent = error;
+  }
+
+  async function stopServer() {
+    var lu = launcherUrl();
+    if (!lu || busy) return;
+    await fetch(lu + '/stop', { method: 'POST' }).catch(function () {});
+    await refreshGate();
+  }
+
+  $('startBtn').addEventListener('click', startServer);
+  $('retry').addEventListener('click', function () { setGate('checking'); refreshGate(); });
+  $('stopServer').addEventListener('click', stopServer);
+  $('copyCmd').addEventListener('click', function () {
+    var ta = document.createElement('textarea');
+    ta.value = $('cmdText').textContent;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); $('copyCmd').textContent = 'Copied ✓'; } catch (e) { /* ignore */ }
+    ta.remove();
+    setTimeout(function () { $('copyCmd').textContent = 'Copy'; }, 1500);
+  });
+
+  // Watchdog: lock again if the server stops.
+  setInterval(function () { if (!busy && !starting) refreshGate(); }, 4000);
+
+  /** Streams NDJSON progress from the server; resolves with the capture. */
+  function captureOnServer(url, vpKey, onProgress) {
+    return fetch(serverUrl() + '/capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url, viewport: vpKey, theme: settings.theme, language: acceptLanguage() })
+    }).then(function (resp) {
+      if (!resp.ok || !resp.body) throw new Error('The server responded ' + resp.status);
+      var reader = resp.body.getReader();
+      var dec = new TextDecoder();
+      var parts = [];
+      var result = null, error = null;
+      function handle(line) {
+        if (!line.trim()) return;
+        var msg = JSON.parse(line);
+        if (msg.type === 'progress') onProgress(msg.message, msg.pct || 0);
+        else if (msg.type === 'result') result = msg.data;
+        else if (msg.type === 'error') error = msg.message;
+      }
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) {
+            if (parts.length) handle(parts.join(''));
+            if (error) throw new Error(error);
+            if (!result) throw new Error('Incomplete response from the server.');
+            return result;
+          }
+          var chunk = dec.decode(r.value, { stream: true });
+          var idx;
+          while ((idx = chunk.indexOf('\n')) >= 0) {
+            parts.push(chunk.slice(0, idx));
+            handle(parts.join(''));
+            parts = [];
+            chunk = chunk.slice(idx + 1);
+          }
+          if (chunk) parts.push(chunk);
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
+
+  function acceptLanguage() {
+    var langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en-US']).slice(0, 4);
+    return langs.map(function (l, i) { return i ? l + ';q=' + (1 - i * 0.1).toFixed(1) : l; }).join(',');
+  }
+
+  function b64ToBytes(b64) {
+    var bin = atob(b64);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  function buildInFigma(capture, images, index, size, autoLayout) {
+    return new Promise(function (resolve, reject) {
+      pending = { resolve: resolve, reject: reject };
+      post({ type: 'build', capture: capture, images: images, batchIndex: index, batchSize: size, autoLayout: autoLayout == null ? !!settings.autoLayout : !!autoLayout });
+    });
+  }
+
+  // ----- exports sent by Claude (MCP) ---------------------------------------
+  var events = null, jobQueue = [], seenJobs = {}, currentJob = null;
+
+  function connectEvents() {
+    if (events || locked) return;
+    try { events = new EventSource(serverUrl() + '/figma/events'); } catch (e) { events = null; return; }
+    events.onopen = function () { $('mcpChip').classList.add('on'); };
+    events.onerror = function () {
+      $('mcpChip').classList.remove('on');
+      if (events && events.readyState === 2) events = null;
+    };
+    events.addEventListener('job', function (ev) {
+      var d = JSON.parse(ev.data);
+      if (seenJobs[d.id]) return;
+      seenJobs[d.id] = true;
+      jobQueue.push(d);
+      processJobs();
+    });
+  }
+
+  function disconnectEvents() {
+    if (events) { events.close(); events = null; }
+    $('mcpChip').classList.remove('on');
+  }
+
+  async function processJobs() {
+    if (currentJob || busy || locked || !jobQueue.length) return;
+    var job = jobQueue.shift();
+    currentJob = job;
+    busy = true; updateButton();
+    $('result').className = 'panel';
+    var label = 'Claude · ' + job.name;
+    try {
+      setProgress(label + ' — receiving…', 5);
+      var r = await fetch(serverUrl() + '/figma/jobs/' + encodeURIComponent(job.id), { cache: 'no-store' });
+      if (!r.ok) throw new Error('Export not found on the server.');
+      var data = await r.json();
+      var cap = data.capture;
+      var images = {};
+      Object.keys(cap.images || {}).forEach(function (id) { images[id] = b64ToBytes(cap.images[id]); });
+      delete cap.images;
+      if (data.name) cap.meta.name = data.name;
+      setProgress(label + ' — creating layers…', 40);
+      var res = await buildInFigma(cap, images, 0, 1, data.autoLayout);
+      await fetch(serverUrl() + '/figma/jobs/' + encodeURIComponent(job.id) + '/result', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ok: true, nodes: res.nodes, autoLayouts: res.autoLayouts, errors: res.errors, frame: res.frame, missingFonts: res.missingFonts }),
+      }).catch(function () {});
+      setProgress('Done', 100);
+      showResult('<b>✓ Claude export imported</b> — “' + esc(res.frame || job.name) + '”, ' + res.nodes + ' layers', true);
+    } catch (e) {
+      await fetch(serverUrl() + '/figma/jobs/' + encodeURIComponent(job.id) + '/result', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ok: false, error: e && e.message ? e.message : String(e) }),
+      }).catch(function () {});
+      showResult('<b>Claude export failed.</b><div class="hint" style="margin-top:6px">' + esc(e && e.message ? e.message : e) + '</div>', false);
+    } finally {
+      currentJob = null;
+      busy = false; updateButton(); fit();
+      processJobs();
+    }
+  }
+
+  function normalizeUrl(u) {
+    u = (u || '').trim();
+    if (!u) return '';
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    try { return new URL(u).href; } catch (e) { return ''; }
+  }
+
+  async function runImport() {
+    if (busy) return;
+    var url = normalizeUrl($('url').value);
+    if (!url) { $('url').focus(); showResult('<b>Enter a valid URL</b>, e.g. https://www.odoo.com', false); return; }
+    settings.url = url; saveSettings();
+    $('result').className = 'panel';
+    busy = true; updateButton();
+    var vps = settings.viewports.slice();
+    var totalNodes = 0, missing = {}, errors = 0;
+    var t0 = Date.now();
+    try {
+      if (!(await checkServer())) { busy = false; await refreshGate(); throw new Error('offline'); }
+      for (var i = 0; i < vps.length; i++) {
+        var vp = VIEWPORTS[vps[i]];
+        var base = (i / vps.length) * 100, span = 100 / vps.length;
+        var prefix = vps.length > 1 ? vp.label + ' · ' : '';
+        setProgress(prefix + 'Connecting to server…', base + 1);
+        var cap = await captureOnServer(url, vp.key, function (m, p) { setProgress(prefix + m, base + span * 0.65 * (p / 100)); });
+        setProgress(prefix + 'Creating layers…', base + span * 0.68);
+        var images = {};
+        Object.keys(cap.images || {}).forEach(function (id) { images[id] = b64ToBytes(cap.images[id]); });
+        delete cap.images;
+        var res = await buildInFigma(cap, images, i, vps.length);
+        totalNodes += res.nodes; errors += res.errors;
+        Object.keys(res.missingFonts || {}).forEach(function (k) { missing[k] = res.missingFonts[k]; });
+      }
+      setProgress('Done', 100);
+      var html = '<b>✓ Import complete</b> — ' + totalNodes + ' layers in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s';
+      var mf = Object.keys(missing);
+      if (mf.length) {
+        html += '<div class="hint" style="margin-top:8px">Fonts not installed, replaced:</div><ul>' +
+          mf.map(function (k) { return '<li>' + esc(k) + ' → ' + esc(missing[k]) + '</li>'; }).join('') + '</ul>';
+      }
+      showResult(html, true);
+    } catch (e) {
+      var msg = e && e.message === 'offline'
+        ? '<b>Server offline.</b><div class="hint" style="margin-top:6px">Run <code>npm start</code> in the <code>odootofigma</code> folder, then try again.</div>'
+        : '<b>Import failed.</b><div class="hint" style="margin-top:6px">' + esc(e && e.message ? e.message : e) + '</div>';
+      showResult(msg, false);
+      $('progress').classList.remove('show');
+    } finally {
+      busy = false; updateButton(); fit();
+      processJobs();
+    }
+  }
+
+  $('go').addEventListener('click', runImport);
+  $('url').addEventListener('keydown', function (e) { if (e.key === 'Enter') runImport(); });
+
+  window.onmessage = function (ev) {
+    var msg = ev.data && ev.data.pluginMessage;
+    if (!msg) return;
+    if (msg.type === 'settings') {
+      if (msg.settings) {
+        settings = Object.assign(settings, msg.settings);
+        if (!settings.viewports || !settings.viewports.length) settings.viewports = ['desktop'];
+      }
+      $('url').value = settings.url || '';
+      $('server').value = settings.server;
+      $('gateServer').value = settings.server;
+      renderSelection(); updateButton(); fit();
+      setGate('checking');
+      checkUpdate().then(refreshGate);
+      $('url').focus();
+    } else if (msg.type === 'build-progress' && currentJob) {
+      setProgress('Claude · ' + currentJob.name + ' — creating layers (' + msg.done + '/' + msg.total + ')…', 40 + 60 * msg.done / msg.total);
+    } else if (msg.type === 'build-progress') {
+      var cur = $('stepText').textContent.split(' · ')[0];
+      var prefix = settings.viewports.length > 1 ? cur + ' · ' : '';
+      var i = settings.viewports.indexOf(Object.keys(VIEWPORTS).filter(function (k) { return VIEWPORTS[k].label === cur; })[0]);
+      if (i < 0) i = 0;
+      var base = (i / settings.viewports.length) * 100, span = 100 / settings.viewports.length;
+      setProgress(prefix + 'Creating layers (' + msg.done + '/' + msg.total + ')…', base + span * (0.68 + 0.32 * msg.done / msg.total));
+    } else if (msg.type === 'built') {
+      if (pending) { pending.resolve(msg.result); pending = null; }
+    } else if (msg.type === 'build-error') {
+      if (pending) { pending.reject(new Error(msg.message)); pending = null; }
+    }
+  };
+
+  post({ type: 'load-settings' });
+  fit();
+</script>
+</body>
+</html>

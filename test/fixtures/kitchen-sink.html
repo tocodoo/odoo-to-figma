@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kitchen sink</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+  body { margin: 0; font-family: Roboto, sans-serif; color: #222; background: #fafafa; }
+  section { padding: 24px 40px; border-bottom: 1px solid #ddd; }
+  h1 { font-family: Montserrat; font-weight: 800; font-size: 40px; margin: 0 0 8px; }
+  .grad { background: linear-gradient(90deg, #714B67, #017E84); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .ell { width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #fff; border: 1px dashed #999; padding: 4px; }
+  .clamp { width: 260px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .just { width: 320px; text-align: justify; }
+  .rtl { direction: rtl; width: 300px; }
+  .badge { display: inline-block; background: #017E84; color: #fff; border-radius: 10px; padding: 2px 8px; font-size: 12px; }
+  code { background: #eee; padding: 1px 4px; border-radius: 3px; font-family: Menlo, monospace; }
+  mark { background: #ffe58a; }
+  .box { width: 120px; height: 60px; display: inline-block; margin: 8px; vertical-align: top; }
+  .multi { border-width: 4px 8px 2px 6px; border-style: solid; border-color: red green blue orange; }
+  .dashed { border: 3px dashed #714B67; border-radius: 12px; }
+  .rot { background: #714B67; transform: rotate(12deg); }
+  .shadow { background: #fff; box-shadow: 0 10px 20px rgba(0,0,0,.2), inset 0 0 0 2px #017E84; border-radius: 8px; }
+  .blur { background: url(https://picsum.photos/id/1015/240/120) center/cover; filter: blur(2px); }
+  .glass { position: relative; background: rgba(255,255,255,.4); backdrop-filter: blur(6px); }
+  .radial { background: radial-gradient(circle at 30% 40%, #fff, #714B67 70%); border-radius: 50%; width: 60px; }
+  .conic { background: conic-gradient(from 45deg, red, yellow, green, blue, red); border-radius: 50%; width: 60px; }
+  .sprite { width: 60px; background: url(https://picsum.photos/id/1025/300/60) -120px 0 no-repeat; }
+  .tile { background: url(https://picsum.photos/id/1035/20/20) repeat; }
+  table { border-collapse: collapse; }
+  td, th { border: 1px solid #ccc; padding: 4px 10px; }
+  th { background: #714B67; color: #fff; }
+  .first::first-letter { font-size: 32px; color: #714B67; font-weight: 700; }
+  ul.custom li::marker { color: #017E84; }
+  .abs { position: relative; height: 80px; background: #eef; }
+  .abs .a { position: absolute; right: 10px; bottom: 10px; background: #017E84; color: #fff; padding: 4px; z-index: 2; }
+  .abs .b { position: absolute; right: 30px; bottom: 20px; background: #714B67; color: #fff; padding: 4px; z-index: 1; }
+  .mix { background: #017E84; mix-blend-mode: multiply; }
+  .op { opacity: .5; background: #714B67; }
+  input, select, textarea, button { font: inherit; margin: 4px; }
+  .fancy { appearance: none; border: 2px solid #714B67; border-radius: 6px; padding: 6px 10px; background: #fff; }
+</style>
+</head>
+<body>
+<section>
+  <h1>Title <span class="grad">with a gradient</span></h1>
+  <p class="first">A paragraph with <b>bold</b>, <i>italic</i>, an <a href="https://www.odoo.com">Odoo link</a>, some <code>code()</code>, a <mark>highlight</mark>, H<sub>2</sub>O, x<sup>2</sup>, a <span class="badge">New</span> badge and an icon <i class="fa fa-check" style="color:#017E84"></i> in the middle of text that runs over several lines to check the browser's exact line breaks.</p>
+  <div class="ell">Text that is far too long and must end with an ellipsis</div>
+  <p class="clamp">Text limited to two lines with line-clamp: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+  <p class="just">Justified text: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.</p>
+  <p class="rtl">مرحبا بكم في أودو، نظام تخطيط موارد المؤسسات المفتوح المصدر.</p>
+  <p>Emoji 🚀✨ and   multiple   spaces &nbsp;&nbsp;non-breaking.</p>
+  <pre style="background:#222;color:#eee;padding:10px">function hello() {
+    return "  indentation preserved";
+}</pre>
+</section>
+<section>
+  <div class="box multi"></div><div class="box dashed"></div><div class="box rot"></div><div class="box shadow"></div>
+  <div class="box blur"></div><div class="box glass" style="background-image:none">Verre</div><div class="box radial"></div><div class="box conic"></div>
+  <div class="box sprite"></div><div class="box tile"></div><div class="box mix"></div><div class="box op"></div>
+  <div class="abs"><div class="b">Z1</div><div class="a">Z2</div></div>
+</section>
+<section class="fa-row" style="font-size:24px;color:#714B67">
+  <i class="fa fa-cog"></i> <i class="fa fa-check" style="color:#017E84"></i> <i class="fa fa-envelope fa-lg"></i> <i class="fa fa-user-circle fa-2x"></i>
+  <i class="fa fa-facebook-official"></i> <i class="fa fa-shopping-cart fa-fw"></i> <i class="fa fa-star" style="color:#f5a623"></i><i class="fa fa-star-half-o" style="color:#f5a623"></i>
+  <button style="font-size:14px;padding:6px 12px;background:#714B67;color:#fff;border:0;border-radius:4px"><i class="fa fa-download"></i> Download</button>
+  <span class="fa-stack fa-lg"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-flag fa-stack-1x fa-inverse"></i></span>
+</section>
+<section>
+  <table><tr><th>Produit</th><th>Prix</th></tr><tr><td>CRM</td><td>12,00 €</td></tr><tr><td>Ventes</td><td>9,50 €</td></tr></table>
+  <ul class="custom"><li>First</li><li>Second</li></ul>
+  <ol><li>Un</li><li>Deux</li></ol>
+  <form>
+    <input placeholder="Votre e-mail"> <input value="Valeur saisie"> <input type="password" value="secret">
+    <select><option>Option A</option><option selected>Option B</option></select>
+    <select class="fancy"><option>Styled</option></select>
+    <input type="checkbox" checked> <input type="radio"> <input type="range">
+    <textarea rows="2">Texte
+sur deux lignes</textarea>
+    <button type="button" class="fancy">Bouton</button> <input type="submit" value="Envoyer">
+  </form>
+  <img src="https://picsum.photos/id/1011/400/200" style="width:200px;height:120px;object-fit:cover;border-radius:12px">
+  <img src="https://picsum.photos/id/1012/400/200" style="width:200px;height:120px;object-fit:contain;background:#ddd">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/5/58/Odoo_logo_rgb.svg" style="height:40px">
+  <svg width="48" height="48" viewBox="0 0 24 24" style="color:#714B67"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M7 12l3 3 7-7" stroke="#fff" stroke-width="2" fill="none"/></svg>
+</section>
+</body>
+</html>

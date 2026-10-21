@@ -1,0 +1,5 @@
+node_modules/
+.exp/
+*.log
+capture.json
+.DS_Store

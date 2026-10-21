@@ -1,0 +1,18 @@
+{
+  "name": "Odoo To Figma",
+  "id": "odoo-to-figma",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": [
+    "figma"
+  ],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "http://localhost:3999",
+      "http://localhost:3998"
+    ],
+    "reasoning": "The plugin talks to the Odoo To Figma render server running on the user's own computer (it loads the web page in a headless browser and returns its layout) and to its local launcher, which starts that server on demand. No data is sent to any other server."
+  }
+}
