@@ -646,6 +646,56 @@ function describePage(opts) {
   };
 }
 
+/**
+ * Find the element to click for a step typed by the user: its visible text
+ * ("New", "Send by email") or a CSS selector. Marks it with data-o2f-click.
+ * Elements inside the topmost open dialog win over the page behind it.
+ */
+function findClickable(step) {
+  document.querySelectorAll('[data-o2f-click]').forEach((e) => e.removeAttribute('data-o2f-click'));
+  const visible = (e) => {
+    const r = e.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) return false;
+    const cs = getComputedStyle(e);
+    return cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0';
+  };
+  const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const want = norm(step);
+  const dialogs = Array.from(document.querySelectorAll('.modal.show, .o_dialog, dialog[open], [role=dialog], [aria-modal=true], .dropdown-menu.show, .o-dropdown--menu, .popover.show, .o_popover')).filter(visible);
+  const top = dialogs[dialogs.length - 1] || null;
+  const CLICKABLE = 'button, a, [role=button], [role=menuitem], [role=menuitemcheckbox], [role=tab], [role=option], [role=link], input[type=submit], input[type=button], summary, label, .dropdown-item, .o_menu_item, [data-menu-xmlid]';
+  const label = (e) => norm(e.innerText || e.value || e.getAttribute('aria-label') || e.getAttribute('title') || e.getAttribute('data-tooltip'));
+  const pick = (list) => {
+    if (top) { const inTop = list.filter((e) => top.contains(e)); if (inTop.length) return inTop[0]; }
+    return list[0] || null;
+  };
+  let el = null;
+  const cands = Array.from(document.querySelectorAll(CLICKABLE)).filter(visible);
+  for (const test of [(t) => t === want, (t) => t.startsWith(want), (t) => t.includes(want)]) {
+    // Innermost match first (a <span> label inside a <button> resolves to the button anyway).
+    const hits = cands.filter((e) => test(label(e))).filter((e, _, all) => !all.some((o) => o !== e && e.contains(o)));
+    if ((el = pick(hits))) break;
+  }
+  if (!el) {
+    try { el = pick(Array.from(document.querySelectorAll(step)).filter(visible)); } catch (e) { /* not a selector */ }
+  }
+  if (!el) return false;
+  el.setAttribute('data-o2f-click', '1');
+  return true;
+}
+
+/** Mark the topmost open modal (its content box, without the backdrop) with data-o2f-pick. */
+function findModal() {
+  document.querySelectorAll('[data-o2f-pick]').forEach((e) => e.removeAttribute('data-o2f-pick'));
+  const visible = (e) => { const r = e.getBoundingClientRect(); return r.width > 1 && r.height > 1 && getComputedStyle(e).visibility !== 'hidden'; };
+  const all = Array.from(document.querySelectorAll('.modal.show, .o_dialog, dialog[open], [role=dialog], [role=alertdialog], [aria-modal=true], .offcanvas.show')).filter(visible);
+  const d = all[all.length - 1];
+  if (!d) return false;
+  const inner = d.querySelector('.modal-content');
+  (inner && visible(inner) ? inner : d).setAttribute('data-o2f-pick', '1');
+  return true;
+}
+
 /** Decode any browser-supported image and re-encode it as PNG/JPEG within maxDim. */
 async function convertImage(b64, mime, maxDim, minW, minH) {
   const bin = atob(b64);
@@ -680,5 +730,5 @@ async function convertImage(b64, mime, maxDim, minW, minH) {
 }
 
 module.exports = {
-  preparePage, scrollThrough, settleAnimations, waitForAssets, annotatePage, renderIcons, layoutIcons, isolateShot, restorePage, layoutPatterns, removePatterns, describePage, convertImage,
+  preparePage, scrollThrough, settleAnimations, waitForAssets, annotatePage, renderIcons, layoutIcons, isolateShot, restorePage, layoutPatterns, removePatterns, describePage, findClickable, findModal, convertImage,
 };

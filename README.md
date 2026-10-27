@@ -60,6 +60,10 @@ That's it, you only do this once.
 
 Each screen lands next to what is already on your page, ready to edit.
 
+**Page behind a login** (e.g. `…/odoo/rooms`): turn on **Login required**. It logs in on the site's `/web/login` with `admin` / `admin`, unless you enter another login page or credentials.
+
+**Only a modal, a tab, a menu…**: turn on **Click before export** and type the button texts to click, in order, separated by `>` (e.g. `New > Send by email`). Then pick what to export: **Page**, **Screen** (what fits on screen, with the page behind the modal), **Modal** (the modal alone) or **Element** (a CSS selector).
+
 ## Updates
 
 Nothing to do. When a new version is out, the plugin shows **Update required**: click **Update now**, then reopen the plugin.

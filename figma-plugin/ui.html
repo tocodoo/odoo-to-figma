@@ -81,6 +81,25 @@
   .check input:checked::after { transform: translateX(12px); background: var(--on-ink); }
   .check b { display: block; font-size: 12px; font-weight: 500; }
   .check span { display: block; font-size: 11px; color: var(--muted); }
+  /* Option card: a toggle that reveals its fields */
+  .opt { border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .opt .check { background: transparent; box-shadow: none; }
+  .sub { display: none; flex-direction: column; gap: 6px; padding: 0 14px 14px; }
+  .opt.on .sub { display: flex; }
+  .sub .pair { display: flex; gap: 6px; }
+  .field { width: 100%; min-width: 0; height: 32px; border: 0; border-radius: 100px; padding: 0 12px; background: var(--bg); color: var(--text); font: inherit; font-size: 11.5px; outline: 0; box-shadow: inset 0 0 0 1px var(--line-strong); }
+  .pair .field { flex: 1; width: auto; }
+  .field:focus { box-shadow: inset 0 0 0 1px var(--ink); }
+  .field::placeholder { color: var(--faint); }
+  .field[hidden] { display: none; }
+  .sub .hint { margin: 0 2px; }
+  .target { display: flex; flex-direction: column; gap: 8px; }
+  .target .head { display: flex; align-items: center; font-size: 12px; font-weight: 500; gap: 8px; }
+  .target .head i { font: normal 10.5px var(--mono); color: var(--faint); letter-spacing: 0; }
+  .target .seg { margin-left: auto; }
+  .target .seg button { padding: 5px 10px; }
+  .target .field { background: var(--fill); box-shadow: inset 0 0 0 1px transparent; }
+  .target .field:focus { background: var(--bg); box-shadow: inset 0 0 0 1px var(--ink); }
   .go { height: 44px; border: 0; border-radius: 100px; background: var(--ink); color: var(--on-ink); font: inherit; font-weight: 500; font-size: 13px; letter-spacing: -0.01em; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .15s, transform .1s; }
   .go:hover { background: var(--ink-hover); }
   .go:active { transform: scale(.99); }
@@ -176,7 +195,7 @@
       <button id="gateSave">Test</button>
     </div>
   </details>
-  <div class="ver">V2.1</div>
+  <div class="ver">V2.2</div>
 </div>
 
 <div class="app locked">
@@ -222,7 +241,42 @@
     </div>
   </div>
 
+  <div class="target">
+    <div class="head"><i>04</i>Export
+      <div class="seg" id="target">
+        <button data-target="page" class="sel" title="The whole page, scrolled to the bottom">Page</button>
+        <button data-target="viewport" title="Only what fits on the screen (keeps an open modal with the page behind it)">Screen</button>
+        <button data-target="modal" title="Only the open modal (open it with “Click before export”)">Modal</button>
+        <button data-target="element" title="Only the element matching a CSS selector">Element</button>
+      </div>
+    </div>
+    <input class="field" id="selector" type="text" placeholder="CSS selector, e.g. .o_form_sheet" spellcheck="false" hidden>
+  </div>
+
   <div class="opts">
+    <div class="opt" id="loginOpt">
+      <label class="check">
+        <input type="checkbox" id="loginOn">
+        <div><b>Login required</b><span>Log in first, e.g. for the Odoo back office.</span></div>
+      </label>
+      <div class="sub">
+        <input class="field" id="loginUrl" type="text" placeholder="Login page — default: the site's /web/login" spellcheck="false">
+        <div class="pair">
+          <input class="field" id="loginUser" type="text" placeholder="Login (admin)" autocomplete="off" spellcheck="false">
+          <input class="field" id="loginPass" type="password" placeholder="Password (admin)" autocomplete="off">
+        </div>
+      </div>
+    </div>
+    <div class="opt" id="clicksOpt">
+      <label class="check">
+        <input type="checkbox" id="clicksOn">
+        <div><b>Click before export</b><span>Open a modal, a tab or a menu first.</span></div>
+      </label>
+      <div class="sub">
+        <input class="field" id="clicks" type="text" placeholder="New > Send by email" spellcheck="false">
+        <p class="hint">Button texts (or CSS selectors), clicked in order, separated by <code>&gt;</code>.</p>
+      </div>
+    </div>
     <label class="check">
       <input type="checkbox" id="autoLayout">
       <div><b>Auto layout</b><span>Converts layouts to Figma auto layout (without moving anything).</span></div>
@@ -247,7 +301,7 @@
     </div>
     <p class="hint">The server loads the page in Chrome and sends back its layout. Start it from the plugin's home screen (or with <code>npm start</code> in the <code>odootofigma</code> folder).</p>
   </details>
-  <div class="ver">V2.1</div>
+  <div class="ver">V2.2</div>
 </div>
 
 <script>
@@ -257,7 +311,10 @@
     mobile: { key: 'mobile', label: 'Mobile', width: 390 }
   };
   var $ = function (id) { return document.getElementById(id); };
-  var settings = { server: 'http://localhost:3999', url: '', viewports: ['desktop'], theme: 'light', autoLayout: false };
+  var settings = {
+    server: 'http://localhost:3999', url: '', viewports: ['desktop'], theme: 'light', autoLayout: false,
+    target: 'page', selector: '', login: { on: false, url: '', user: '', password: '' }, clicks: { on: false, steps: '' }
+  };
   var busy = false;
   var pending = null;
 
@@ -268,6 +325,20 @@
   // ----- UI state -----------------------------------------------------------
   function renderSelection() {
     $('autoLayout').checked = !!settings.autoLayout;
+    Array.prototype.forEach.call(document.querySelectorAll('#target button'), function (el) {
+      el.classList.toggle('sel', el.getAttribute('data-target') === settings.target);
+    });
+    $('selector').hidden = settings.target !== 'element';
+    $('selector').value = settings.selector || '';
+    $('loginOn').checked = !!settings.login.on;
+    $('loginOpt').classList.toggle('on', !!settings.login.on);
+    $('loginUrl').value = settings.login.url || '';
+    $('loginUser').value = settings.login.user || '';
+    $('loginPass').value = settings.login.password || '';
+    $('clicksOn').checked = !!settings.clicks.on;
+    $('clicksOpt').classList.toggle('on', !!settings.clicks.on);
+    $('clicks').value = settings.clicks.steps || '';
+    fit();
     Array.prototype.forEach.call(document.querySelectorAll('.vp'), function (el) {
       el.classList.toggle('sel', settings.viewports.indexOf(el.getAttribute('data-vp')) >= 0);
     });
@@ -297,6 +368,35 @@
     if (busy) { $('autoLayout').checked = !!settings.autoLayout; return; }
     settings.autoLayout = $('autoLayout').checked;
     saveSettings();
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('#target button'), function (el) {
+    el.addEventListener('click', function () {
+      if (busy) return;
+      settings.target = el.getAttribute('data-target');
+      // A modal only exists after a click: open the clicks option for it.
+      if (settings.target === 'modal' && !settings.clicks.on) settings.clicks.on = true;
+      renderSelection(); saveSettings();
+      if (settings.target === 'element') $('selector').focus();
+      else if (settings.target === 'modal' && !settings.clicks.steps) $('clicks').focus();
+    });
+  });
+  ['loginOn', 'clicksOn'].forEach(function (id) {
+    $(id).addEventListener('change', function () {
+      var group = id === 'loginOn' ? settings.login : settings.clicks;
+      if (busy) { $(id).checked = !!group.on; return; }
+      group.on = $(id).checked;
+      renderSelection(); saveSettings();
+    });
+  });
+  // Text fields: saved as typed.
+  [['selector', null, 'selector'], ['loginUrl', 'login', 'url'], ['loginUser', 'login', 'user'], ['loginPass', 'login', 'password'], ['clicks', 'clicks', 'steps']].forEach(function (f) {
+    $(f[0]).addEventListener('input', function () {
+      var group = f[1] ? settings[f[1]] : settings;
+      group[f[2]] = $(f[0]).value;
+      saveSettings();
+    });
+    $(f[0]).addEventListener('keydown', function (e) { if (e.key === 'Enter') runImport(); });
   });
 
   function updateButton() {
@@ -488,7 +588,7 @@
     return fetch(serverUrl() + '/capture', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: url, viewport: vpKey, theme: settings.theme, language: acceptLanguage() })
+      body: JSON.stringify(Object.assign({ url: url, viewport: vpKey, theme: settings.theme, language: acceptLanguage() }, captureOptions()))
     }).then(function (resp) {
       if (!resp.ok || !resp.body) throw new Error('The server responded ' + resp.status);
       var reader = resp.body.getReader();
@@ -524,6 +624,20 @@
       }
       return pump();
     });
+  }
+
+  /** Login, clicks and export target, as sent to /capture. */
+  function captureOptions() {
+    var o = { target: settings.target === 'element' ? { selector: (settings.selector || '').trim() } : settings.target };
+    if (settings.login.on) {
+      o.login = {
+        url: (settings.login.url || '').trim() || null,
+        user: settings.login.user || 'admin',
+        password: settings.login.password || 'admin'
+      };
+    }
+    if (settings.clicks.on) o.clicks = (settings.clicks.steps || '').split('>').map(function (s) { return s.trim(); }).filter(Boolean);
+    return o;
   }
 
   function acceptLanguage() {
@@ -619,6 +733,8 @@
     if (busy) return;
     var url = normalizeUrl($('url').value);
     if (!url) { $('url').focus(); showResult('<b>Enter a valid URL</b>, e.g. https://www.odoo.com', false); return; }
+    if (settings.target === 'element' && !(settings.selector || '').trim()) { $('selector').focus(); showResult('<b>Enter a CSS selector</b> for the element to export.', false); return; }
+    if (settings.target === 'modal' && !(settings.clicks.on && captureOptions().clicks.length)) { settings.clicks.on = true; renderSelection(); $('clicks').focus(); showResult('<b>Which button opens the modal?</b> Type its text in “Click before export”.', false); return; }
     settings.url = url; saveSettings();
     $('result').className = 'panel';
     busy = true; updateButton();
@@ -669,8 +785,13 @@
     if (!msg) return;
     if (msg.type === 'settings') {
       if (msg.settings) {
+        var defaults = { login: settings.login, clicks: settings.clicks };
         settings = Object.assign(settings, msg.settings);
         if (!settings.viewports || !settings.viewports.length) settings.viewports = ['desktop'];
+        // Settings saved by an older version miss these groups.
+        settings.login = Object.assign({}, defaults.login, settings.login);
+        settings.clicks = Object.assign({}, defaults.clicks, settings.clicks);
+        if (!settings.target) settings.target = 'page';
       }
       $('url').value = settings.url || '';
       $('server').value = settings.server;

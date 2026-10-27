@@ -366,20 +366,102 @@ async function newIncognitoPage(req) {
 }
 
 /**
- * Import a URL (fresh incognito browser, whole page).
- * @param {object} req {url, viewport, theme, language}
+ * Import a URL (fresh incognito browser).
+ * @param {object} req {url, viewport, theme, language,
+ *   login: {url?, user, password}   log in first (default page: <site>/web/login),
+ *   clicks: ['New', '.o_selector']  clicked in order once the page is open (text or CSS selector),
+ *   target: 'page' | 'viewport' | 'modal' | {selector}}
  * @param {(msg:string, pct?:number)=>void} progress
  */
 async function capture(req, progress = () => {}) {
   const url = normalizeUrl(req.url);
   const t = await newIncognitoPage(req);
   try {
+    if (req.login) await login(t, url, req.login, progress);
     progress('Opening page…', 5);
     await openUrl(t.page, url, t.lastNav);
-    return await capturePage(t.page, { ...t, scroll: true, scope: 'page', name: req.name }, progress);
+    if (req.login && await hasVisiblePassword(t.page)) throw new Error('The page still asks to log in: check the login and password, or the login page URL.');
+    const clicks = (req.clicks || []).map((s) => String(s).trim()).filter(Boolean);
+    for (let i = 0; i < clicks.length; i++) {
+      progress(`Clicking “${clicks[i]}” (${i + 1}/${clicks.length})…`, 8 + Math.round((i / clicks.length) * 10));
+      await clickStep(t, clicks[i]);
+    }
+    const target = req.target || 'page';
+    let scope = target === 'viewport' ? 'viewport' : 'page', selector = null;
+    if (target === 'modal') {
+      if (!(await waitFor(t.page, scripts.findModal))) throw new Error('No open modal found: add the click that opens it (e.g. the button text).');
+      scope = 'element'; selector = '[data-o2f-pick]';
+    } else if (target && target.selector) {
+      const ok = await waitFor(t.page, (sel) => {
+        document.querySelectorAll('[data-o2f-pick]').forEach((e) => e.removeAttribute('data-o2f-pick'));
+        let el = null;
+        try { el = document.querySelector(sel); } catch (e) { return false; }
+        if (el) el.setAttribute('data-o2f-pick', '1');
+        return !!el;
+      }, target.selector);
+      if (!ok) throw new Error(`No element matches “${target.selector}”.`);
+      scope = 'element'; selector = '[data-o2f-pick]';
+    }
+    return await capturePage(t.page, { ...t, scroll: scope === 'page', scope, target: selector, name: req.name }, progress);
   } finally {
     await t.context.close().catch(() => {});
   }
+}
+
+async function hasVisiblePassword(page) {
+  return page.evaluate(() => Array.from(document.querySelectorAll('input[type=password]')).some((e) => e.offsetParent)).catch(() => false);
+}
+
+/** Fill and submit a login form (Odoo /web/login by default). */
+async function login(t, url, auth, progress) {
+  const loginUrl = auth.url ? normalizeUrl(auth.url) : new URL('/web/login', url).href;
+  progress('Logging in…', 2);
+  await openUrl(t.page, loginUrl, t.lastNav);
+  const pwd = await t.page.$('input[type=password]');
+  if (!pwd) return; // no form: nothing to do (public page or already logged in)
+  const user = await t.page.$('input[name=login], input[type=email], input[autocomplete=username], form input[type=text]');
+  if (!user) throw new Error(`No login field found on ${loginUrl}.`);
+  for (const [el, value] of [[user, auth.user == null ? 'admin' : auth.user], [pwd, auth.password == null ? 'admin' : auth.password]]) {
+    await el.evaluate((e) => { e.focus(); e.value = ''; });
+    await el.type(String(value), { delay: 10 });
+  }
+  await Promise.all([
+    t.page.waitForNavigation({ waitUntil: 'load', timeout: 30000 }).catch(() => {}),
+    pwd.press('Enter'),
+  ]);
+  await settle(t.page, t.lastNav);
+  if (await hasVisiblePassword(t.page)) {
+    const msg = await t.page.evaluate(() => { const a = document.querySelector('.alert-danger, .o_error, [role=alert]'); return a ? a.innerText.trim() : ''; }).catch(() => '');
+    throw new Error(`Login failed${msg ? ` (${msg})` : ''}: check the login and password.`);
+  }
+}
+
+/** Retry a page check (fn returns true when found) for a few seconds: Odoo renders asynchronously. */
+async function waitFor(page, fn, arg, timeout = 10000) {
+  const t0 = Date.now();
+  for (;;) {
+    if (await page.evaluate(fn, arg).catch(() => false)) return true;
+    if (Date.now() - t0 > timeout) return false;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+}
+
+async function clickStep(t, step) {
+  if (!(await waitFor(t.page, scripts.findClickable, step))) throw new Error(`Nothing to click matching “${step}”: use the exact button text or a CSS selector.`);
+  const el = await t.page.$('[data-o2f-click]');
+  await el.evaluate((e) => { e.removeAttribute('data-o2f-click'); e.scrollIntoView({ block: 'center', inline: 'center' }); });
+  try { await el.click({ delay: 30 }); } catch (e) { await el.evaluate((n) => n.click()); }
+  await afterAction(t.page, t.lastNav);
+}
+
+/** Wait for the consequences of a click / key press (navigation, XHR, re-render). */
+async function afterAction(page, lastNav) {
+  const before = lastNav();
+  await new Promise((r) => setTimeout(r, 350));
+  await page.waitForNetworkIdle({ idleTime: 400, timeout: 8000 }).catch(() => {});
+  if (lastNav() !== before) await settle(page, lastNav);
+  await page.evaluate(scripts.preparePage).catch(() => {});
+  await new Promise((r) => setTimeout(r, 250));
 }
 
 /** Import HTML code (e.g. generated by Claude). */
@@ -465,6 +547,6 @@ async function normalizeImage(buf, mime, disp, helper) {
 }
 
 module.exports = {
-  capture, captureHtml, capturePage, openUrl, settle, trackResponses, trackNavigation, applyViewport, userAgentFor,
+  capture, captureHtml, capturePage, openUrl, settle, afterAction, trackResponses, trackNavigation, applyViewport, userAgentFor,
   resolveViewport, normalizeUrl, getBrowser, closeBrowser, VIEWPORTS, findChrome,
 };

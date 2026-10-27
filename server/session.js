@@ -8,7 +8,7 @@ const os = require('os');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
 const {
-  findChrome, capturePage, openUrl, settle, trackResponses, trackNavigation, applyViewport, userAgentFor,
+  findChrome, capturePage, openUrl, afterAction: waitAfterAction, trackResponses, trackNavigation, applyViewport, userAgentFor,
   resolveViewport, normalizeUrl,
 } = require('./capture');
 const scripts = require('./page-scripts');
@@ -77,15 +77,7 @@ function current() {
   return state;
 }
 
-/** Wait for the consequences of a click / key press (navigation, XHR, re-render). */
-async function afterAction(st) {
-  const before = st.lastNav();
-  await new Promise((r) => setTimeout(r, 350));
-  await st.page.waitForNetworkIdle({ idleTime: 400, timeout: 8000 }).catch(() => {});
-  if (st.lastNav() !== before) await settle(st.page, st.lastNav);
-  await st.page.evaluate(scripts.preparePage).catch(() => {});
-  await new Promise((r) => setTimeout(r, 250));
-}
+function afterAction(st) { return waitAfterAction(st.page, st.lastNav); }
 
 async function describe(st, { screenshot = true, all = false } = {}) {
   const d = await st.page.evaluate(scripts.describePage, { all, max: all ? 400 : 150 });
