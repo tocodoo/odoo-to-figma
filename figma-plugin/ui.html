@@ -640,7 +640,16 @@
     fetch(serverUrl() + '/databases?url=' + encodeURIComponent(origin), { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
-        $('dbList').innerHTML = (j.databases || []).map(function (n) { return '<option value="' + esc(n) + '">'; }).join('');
+        // Show "Holiday House" rather than "130222489-20-0-industry-Holiday_House".
+        var names = j.databases || [];
+        var prefix = names.length > 1 ? names.reduce(function (p, n) { while (n.indexOf(p) !== 0) p = p.slice(0, -1); return p; }) : '';
+        // The parent database ("…-industry") is the common prefix itself.
+        if (names.indexOf(prefix) >= 0) prefix += '-';
+        prefix = prefix.slice(0, prefix.lastIndexOf('-') + 1);
+        $('dbList').innerHTML = names.map(function (n) {
+          var short = n.slice(prefix.length).replace(/_/g, ' ');
+          return '<option value="' + esc(short && n.length > prefix.length ? short : n) + '">';
+        }).join('');
       })
       .catch(function () { dbListFor = null; });
   });
