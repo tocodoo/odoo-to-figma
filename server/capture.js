@@ -368,6 +368,7 @@ async function newIncognitoPage(req) {
 /**
  * Import a URL (fresh incognito browser).
  * @param {object} req {url, viewport, theme, language,
+ *   db: 'Holiday House'              database to select first (multi-database servers, industry runbots),
  *   login: {url?, user, password}   log in first (default page: <site>/web/login),
  *   clicks: ['New', '.o_selector']  clicked in order once the page is open (text or CSS selector),
  *   target: 'page' | 'viewport' | 'modal' | {selector}}
@@ -377,9 +378,11 @@ async function capture(req, progress = () => {}) {
   const url = normalizeUrl(req.url);
   const t = await newIncognitoPage(req);
   try {
+    if (req.db) await selectDatabase(t, url, req.db, progress);
     if (req.login) await login(t, url, req.login, progress);
     progress('Opening page…', 5);
     await openUrl(t.page, url, t.lastNav);
+    if (isDbSelector(t.page)) throw new Error('This server hosts several databases (e.g. an industry runbot): fill in “Database” under Login required, e.g. Holiday House.');
     if (req.login && await hasVisiblePassword(t.page)) throw new Error('The page still asks to log in: check the login and password, or the login page URL.');
     const clicks = (req.clicks || []).map((s) => String(s).trim()).filter(Boolean);
     for (let i = 0; i < clicks.length; i++) {
@@ -408,6 +411,50 @@ async function capture(req, progress = () => {}) {
   }
 }
 
+function isDbSelector(page) {
+  try { return /^\/web\/database\/(selector|manager)/.test(new URL(page.url()).pathname); } catch (e) { return false; }
+}
+
+/** Database names listed by an Odoo server hosting several (industry runbots), [] if it does not list them. */
+async function listDatabases(url) {
+  const origin = new URL(normalizeUrl(url)).origin;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const resp = await fetch(origin + '/web/database/selector', { signal: ctrl.signal });
+    if (!resp.ok) return [];
+    const html = await resp.text();
+    const names = new Set();
+    for (const m of html.matchAll(/[?&]db=([^"'&<>\s]+)/g)) names.add(decodeURIComponent(m[1]));
+    return Array.from(names);
+  } catch (e) {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Pick the database first: "holiday house" finds "…-industry-Holiday_House". */
+async function selectDatabase(t, url, wanted, progress) {
+  progress('Selecting the database…', 1);
+  const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const w = norm(wanted);
+  const names = await listDatabases(url);
+  let db = String(wanted).trim();
+  if (names.length) {
+    db = names.find((n) => n === db)
+      || names.find((n) => norm(n) === w)
+      || names.find((n) => norm(n).endsWith(w))
+      || names.find((n) => norm(n).includes(w));
+    if (!db) {
+      const hint = names.slice(1, 6).map((n) => n.split('-').pop()).join(', ');
+      throw new Error(`No database matches “${wanted}” (e.g. ${hint}…).`);
+    }
+  }
+  await openUrl(t.page, new URL('/web/login?db=' + encodeURIComponent(db), url).href, t.lastNav);
+  if (isDbSelector(t.page)) throw new Error(`Could not select the database “${db}”.`);
+}
+
 async function hasVisiblePassword(page) {
   return page.evaluate(() => Array.from(document.querySelectorAll('input[type=password]')).some((e) => e.offsetParent)).catch(() => false);
 }
@@ -419,7 +466,11 @@ async function login(t, url, auth, progress) {
   await openUrl(t.page, loginUrl, t.lastNav);
   const pwd = await t.page.$('input[type=password]');
   if (!pwd) return; // no form: nothing to do (public page or already logged in)
-  const user = await t.page.$('input[name=login], input[type=email], input[autocomplete=username], form input[type=text]');
+  // In priority order: Odoo's form also has a visible "db" text field on multi-database servers.
+  let user = null;
+  for (const sel of ['input[name=login]', 'input[type=email]', 'input[autocomplete=username]', 'form input[type=text]:not([name=db])']) {
+    if ((user = await t.page.$(sel))) break;
+  }
   if (!user) throw new Error(`No login field found on ${loginUrl}.`);
   for (const [el, value] of [[user, auth.user == null ? 'admin' : auth.user], [pwd, auth.password == null ? 'admin' : auth.password]]) {
     await el.evaluate((e) => { e.focus(); e.value = ''; });
@@ -547,6 +598,6 @@ async function normalizeImage(buf, mime, disp, helper) {
 }
 
 module.exports = {
-  capture, captureHtml, capturePage, openUrl, settle, afterAction, trackResponses, trackNavigation, applyViewport, userAgentFor,
+  capture, captureHtml, capturePage, listDatabases, openUrl, settle, afterAction, trackResponses, trackNavigation, applyViewport, userAgentFor,
   resolveViewport, normalizeUrl, getBrowser, closeBrowser, VIEWPORTS, findChrome,
 };

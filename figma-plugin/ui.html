@@ -260,6 +260,8 @@
         <div><b>Login required</b><span>Log in first, e.g. for the Odoo back office.</span></div>
       </label>
       <div class="sub">
+        <input class="field" id="loginDb" type="text" list="dbList" placeholder="Database — only for industry runbots, e.g. Holiday House" autocomplete="off" spellcheck="false">
+        <datalist id="dbList"></datalist>
         <input class="field" id="loginUrl" type="text" placeholder="Login page — default: the site's /web/login" spellcheck="false">
         <div class="pair">
           <input class="field" id="loginUser" type="text" placeholder="Login (admin)" autocomplete="off" spellcheck="false">
@@ -313,7 +315,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var settings = {
     server: 'http://localhost:3999', url: '', viewports: ['desktop'], theme: 'light', autoLayout: false,
-    target: 'page', selector: '', login: { on: false, url: '', user: '', password: '' }, clicks: { on: false, steps: '' }
+    target: 'page', selector: '', login: { on: false, db: '', url: '', user: '', password: '' }, clicks: { on: false, steps: '' }
   };
   var busy = false;
   var pending = null;
@@ -332,6 +334,7 @@
     $('selector').value = settings.selector || '';
     $('loginOn').checked = !!settings.login.on;
     $('loginOpt').classList.toggle('on', !!settings.login.on);
+    $('loginDb').value = settings.login.db || '';
     $('loginUrl').value = settings.login.url || '';
     $('loginUser').value = settings.login.user || '';
     $('loginPass').value = settings.login.password || '';
@@ -390,7 +393,7 @@
     });
   });
   // Text fields: saved as typed.
-  [['selector', null, 'selector'], ['loginUrl', 'login', 'url'], ['loginUser', 'login', 'user'], ['loginPass', 'login', 'password'], ['clicks', 'clicks', 'steps']].forEach(function (f) {
+  [['selector', null, 'selector'], ['loginDb', 'login', 'db'], ['loginUrl', 'login', 'url'], ['loginUser', 'login', 'user'], ['loginPass', 'login', 'password'], ['clicks', 'clicks', 'steps']].forEach(function (f) {
     $(f[0]).addEventListener('input', function () {
       var group = f[1] ? settings[f[1]] : settings;
       group[f[2]] = $(f[0]).value;
@@ -626,10 +629,27 @@
     });
   }
 
+  // Database suggestions (industry runbots list theirs), fetched once per site.
+  var dbListFor = null;
+  $('loginDb').addEventListener('focus', function () {
+    var url = normalizeUrl($('url').value);
+    if (!url) return;
+    var origin = new URL(url).origin;
+    if (dbListFor === origin) return;
+    dbListFor = origin;
+    fetch(serverUrl() + '/databases?url=' + encodeURIComponent(origin), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        $('dbList').innerHTML = (j.databases || []).map(function (n) { return '<option value="' + esc(n) + '">'; }).join('');
+      })
+      .catch(function () { dbListFor = null; });
+  });
+
   /** Login, clicks and export target, as sent to /capture. */
   function captureOptions() {
     var o = { target: settings.target === 'element' ? { selector: (settings.selector || '').trim() } : settings.target };
     if (settings.login.on) {
+      if ((settings.login.db || '').trim()) o.db = settings.login.db.trim();
       o.login = {
         url: (settings.login.url || '').trim() || null,
         user: settings.login.user || 'admin',

@@ -1,12 +1,13 @@
 'use strict';
 // Odoo To Figma – local render server.
 //   POST /capture {url, viewport, theme}   → NDJSON stream of progress + result (plugin "Import")
+//   GET  /databases?url=…                  → databases of a multi-database Odoo server (industry runbots)
 //   POST /session/*                        → browser session driven by Claude (MCP)
 //   POST /session/export, /figma/import-*  → captures queued for the Figma plugin
 //   GET  /figma/events                     → Server-Sent Events listened to by the plugin
 
 const http = require('http');
-const { capture, captureHtml, getBrowser, closeBrowser, findChrome } = require('./capture');
+const { capture, captureHtml, listDatabases, getBrowser, closeBrowser, findChrome } = require('./capture');
 const session = require('./session');
 const jobs = require('./jobs');
 const pkg = require('../package.json');
@@ -38,6 +39,12 @@ async function handle(req, res) {
   if (req.method === 'GET' && (path === '/health' || path === '/')) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ ok: true, name: 'Odoo To Figma', version: pkg.version, chrome: !!findChrome() }));
+  }
+
+  if (req.method === 'GET' && path === '/databases') {
+    const url = new URLSearchParams(req.url.split('?')[1] || '').get('url');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ databases: url ? await listDatabases(url).catch(() => []) : [] }));
   }
 
   if (req.method === 'POST' && path === '/capture') {
